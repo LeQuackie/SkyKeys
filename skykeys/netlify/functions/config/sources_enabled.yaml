@@ -1,0 +1,2 @@
+# Toggle individual scraping sources for Netlify deployments.
+# TODO: Maintain enabled: true/false flags per adapter once runtime is ready.
