@@ -1,3 +1,3 @@
-// API client utilities for communicating with the FastAPI backend.
-// TODO: add fetch wrappers with cancellation, timeout handling, and
-// transformation into typed structures for offers and flags.
+// API client utilities for communicating with Netlify Functions.
+// TODO: implement fetch wrappers targeting "/.netlify/functions/search" with
+// cancellation, timeout handling, and typed parsing for offers + flags.

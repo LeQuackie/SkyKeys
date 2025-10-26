@@ -1,143 +1,123 @@
 # SkyKeys – Meta-Preisvergleich (MVP)
 
-Dieses Repository enthält das Projektgerüst für **SkyKeys**, eine
-asynchrone Meta-Preisvergleichsplattform für Game Keys. Das Ziel ist,
-über zehn etablierte Vergleichsseiten hinweg Angebote zu scrapen,
-normalisieren und deduplizieren, sodass Nutzer:innen stets das günstigste
-Angebot finden – präsentiert in einem norisk.gg-inspirierten UI.
+Dieses Repository enthält das aktualisierte Projektgerüst für **SkyKeys**,
+eine Meta-Preisvergleichsplattform für Game Keys. Das MVP ist nun auf ein
+**Netlify**-basiertes Deployment ausgelegt: Das React-Frontend wird mit Vite
+gebaut und als statische Seite ausgeliefert, während die Aggregations- und
+Scraping-Logik in **Netlify Functions** portiert wird.
 
 ## Architekturüberblick
 
-- **Backend**: FastAPI (async) mit modularer Adapterstruktur für jede
-  Quelle, Normalisierung und Caching (SQLite mit 45 Minuten TTL).
-- **Scraping**: Playwright (Chromium) mit Stealth-Setup, zufälligen
-  Delays, Backoff und per-Domain-Rate-Limit.
-- **Konfiguration**: YAML-Dateien für Selektoren je Quelle sowie
-  `config/rates.json` für feste Wechselkurse.
-- **Frontend**: React (Vite) + TailwindCSS, inspiriert von norisk.gg –
-  dunkler Premium-Look, Neon-Akzente, Glas-Effekte.
-- **Deployment**: Dockerfiles für Backend und Frontend sowie
-  `docker-compose` für lokales Orchestrieren.
+- **Frontend**: React (Vite) + TailwindCSS im norisk.gg-inspirierten Dark-Style
+  (Neon-Akzente, Glas-Effekte, hochwertige Typografie).
+- **Serverless Backend**: Netlify Functions (`/.netlify/functions/search`) als
+  Ersatz für das ehemalige FastAPI-Backend. Adapter, Normalisierung,
+  Deduplizierung und Caching werden nach Node.js/TypeScript überführt.
+- **Scraping**: Playwright (Chromium) mit Stealth-Modus, zufälligen Delays,
+  Backoff und Domain-Rate-Limits (Implementierung folgt in den Adaptern).
+- **Konfiguration**: YAML-Dateien pro Quelle sowie `rates.json` für statische
+  Wechselkurse, gebündelt unter `netlify/functions/config`.
+- **Caching**: In-Memory-Cache mit 45-Minuten-TTL je Funktionsinstanz.
+- **Deployment**: Netlify (`netlify.toml`) mit Build-Command `npm run build`,
+  Publish-Ordner `dist` und Functions-Verzeichnis `netlify/functions`.
 
 ## Projektstruktur
 
 ```
 skykeys/
-  backend/
-    main.py                          # FastAPI-Einstiegspunkt (TODOs für Routen, Middleware, Lifespan)
-    core/                            # Normalisierung, Dedupe, Currency, Cache, Robots, Utils
-      normalize.py
-      dedupe.py
-      currency.py
-      cache.py
-      robots.py
-      utils.py
-    adapters/                        # Adapter je Quelle (10 Stück + Base)
-      base.py
-      planetkey.py
-      keys_for_steam.py
-      ggdeals.py
-      cheapshark.py
-      isthereanydeal.py
-      cdkeys.py
-      eneba.py
-      fanatical.py
-      gamivo.py
-      greenmangaming.py
-  config/
-    sources_enabled.yaml             # Reihenfolge & Aktivierung der Quellen
-    sources/*.yaml                   # Selektoren & Rate-Limits je Quelle (Platzhalter)
-    rates.json                       # Statische EUR-Umrechnungskurse
+  netlify.toml                       # Netlify Build & Redirect-Konfiguration
+  package.json                       # Vite/Tailwind/React Setup & Scripts
+  .env.example                       # Platzhalter für Netlify Environment Variablen
   frontend/
-    index.html
+    index.html                       # Vite Entry (Root im Frontend-Ordner)
+    vite.config.ts                   # Vite-Konfiguration (root=frontend, outDir=../dist)
     src/
-      main.tsx
-      App.tsx
-      components/                    # Navbar, Hero, SearchBar, BestDealCard, Filters, OffersTable, OfferCard, Skeleton, Footer, HowItWorks, FAQ
-      lib/api.ts
-      styles.css                     # Tailwind/Tokens-Platzhalter
-  tests/
-    test_normalize.py
-    test_dedupe.py
-    test_parsers.py
-  scripts/
-    add_source.py
-    smoke_test.sh
-  .env.example
-  docker-compose.yml
-  Dockerfile.backend
-  Dockerfile.frontend
-  Makefile
+      main.tsx                       # React Bootstrap (TODOs für App-Mounting)
+      App.tsx                        # Komponenten-Skelett (Norisk.gg-Anmutung)
+      components/                    # Navbar, Hero, SearchBar, BestDealCard, Filters,
+                                     # OffersTable, OfferCard, Skeleton, Footer, FAQ, HowItWorks
+      lib/api.ts                     # Fetch-Helfer für /.netlify/functions/search
+      styles.css                     # Tailwind-Setup & Design-Tokens (TODO)
+  netlify/
+    functions/
+      search.ts                      # Serverless Entry-Point (Caching, Aggregation, Fehlerreporting)
+      core/                          # Normalisierung, Dedupe, Currency, Cache, Robots, Utils (TODO)
+        cache.ts
+        currency.ts
+        dedupe.ts
+        normalize.ts
+        robots.ts
+        utils.ts
+      adapters/                      # 10 Source-Adapter (PlanetKey, GG.deals, etc.)
+        planetkey.ts
+        keysforsteam.ts
+        ggdeals.ts
+        cheapshark.ts
+        isthereanydeal.ts
+        gamivo.ts
+        eneba.ts
+        cdkeys.ts
+        fanatical.ts
+        greenmangaming.ts
+      config/
+        sources_enabled.yaml         # Feature-Flags für Adapteraktivierung
+        rates.json                    # Statische EUR-Umrechnungskurse
+        sources/*.yaml               # Selektoren & Scraping-Regeln (TODO)
 ```
 
 ## Einrichtung & lokale Entwicklung
 
-1. **Playwright-Abhängigkeiten installieren**: Chromium + Stealth-Patches
-   vorbereiten. Siehe künftige Dockerfiles oder manuelle Installation via
-   `playwright install --with-deps`.
-2. **Python-Umgebung**: Virtuelle Umgebung erstellen, FastAPI, Playwright
-   und SQLite-Driver installieren (abhängige Versionen folgen in Pip-/Poetry-Dateien).
-3. **Frontend**: Node.js (>=18) installieren, `npm install` im
-   `frontend`-Verzeichnis ausführen, Tailwind konfigurieren.
-4. **Umgebungsvariablen**: `.env` auf Basis von `.env.example`
-   anpassen (Playwright-Timeouts, Rate-Limits, Pfade für SQLite etc.).
-5. **Docker**: Alternativ `docker-compose` verwenden (Services müssen in
-   der Compose-Datei ergänzt werden).
+1. **Node.js installieren** (>=18) und `npm install` im Projektroot ausführen.
+   Dadurch werden Vite, React, Tailwind sowie Netlify-Funktionstypen verfügbar.
+2. **Netlify CLI** optional installieren (`npm install -g netlify-cli`), um mit
+   `netlify dev` Frontend und Functions gemeinsam zu testen.
+3. **Environment Variablen** über `.env` bzw. Netlify Dashboard pflegen
+   (Playwright-Credentials, Rate-Limits, Feature-Flags).
+4. **Frontend-Entwicklung**: `npm run dev` startet Vite mit Proxy auf die
+   Functions (`/.netlify/functions/search`).
+5. **Build & Deploy**: `npm run build` erzeugt `dist/`. Netlify deployt dieses
+   Verzeichnis und bundelt Functions aus `netlify/functions/`.
 
 ## Scraping-Richtlinien & robots.txt
 
-- **robots.txt beachten**: Der Adapter muss vor jedem Crawl prüfen, ob
-  der jeweilige Pfad für den SkyKeys User-Agent erlaubt ist.
-- **Rate-Limits respektieren**: Per Quelle in der YAML definiert
-  (`requests_per_minute`, zufällige Delays). Diese Limits sind strikt
-  einzuhalten.
-- **Backoff & Fehlerhandling**: Bei HTTP-/Timeout-Fehlern exponentielles
-  Backoff verwenden, aber das Gesamtergebnis dennoch liefern. Fehler pro
-  Quelle in `flags.errors` melden.
+- Vor jedem Crawl `robots.txt` respektieren. Die Helper unter
+  `netlify/functions/core/robots.ts` sollen Regeln cachen und konfigurierbar
+  machen.
+- Pro Domain Rate-Limits und zufällige Delays nutzen (siehe TODOs in den
+  Adapterdateien). Netlify Functions haben ein Zeitlimit von ca. 10s – passende
+  Timeouts und parallele Ausführung mit Vorsicht planen.
+- Fehlerhafte Quellen dürfen die Gesamtausgabe nicht blockieren. Stattdessen
+  Fehler in `flags.errors` sammeln und `flags.partial_results` setzen.
 
-## YAML-Selektoren anpassen
+## YAML-Selektoren pflegen
 
-- Jede Datei unter `config/sources/*.yaml` enthält Platzhalter für
-  Selektoren (`TODO-CSS-SELECTOR`).
-- Fülle `metadata`, `search`, `selectors`, `price_parsing` und `flags`
-  mit realen Werten, sobald die DOM-Struktur analysiert wurde.
-- Halte das Limit `max_items` konservativ, um Performance und
-  Anti-Bot-Maßnahmen nicht zu gefährden.
-- Dokumentiere Besonderheiten (z. B. Gebühren, Regionen) im `notes`-Feld.
+- Jede Datei unter `netlify/functions/config/sources/*.yaml` enthält Platzhalter
+  für `search_url_template`, CSS-Selektoren, Pagination, `price.regex` usw.
+- Dokumentiere Besonderheiten (Region-Locks, Gebührenhinweise) im `notes`-Feld.
+- Nutze `sources_enabled.yaml`, um Quellen temporär zu deaktivieren (z. B.
+  Wartung, Captcha-Schutz).
 
-## Datenmodell & Caching
+## Caching & Datenmodell (Serverless)
 
-- `offers`-Tabelle speichert normalisierte Resultate inklusive TTL.
-- `scrape_logs` protokolliert Dauer, Status und Fehlergründe pro Quelle.
-- Cache-Regel: gleiche Suche innerhalb von 45 Minuten liefert gespeichertes
-  Ergebnis, ansonsten erneute Scrape-Runde.
+- Der frühere SQLite-Layer entfällt. Stattdessen legt `core/cache.ts` eine
+  In-Memory-Map an, die pro Warm-Instance gültig ist.
+- Normalisierung (`core/normalize.ts`) und Deduplizierung (`core/dedupe.ts`)
+  spiegeln weiterhin das definierte Offer-Schema
+  (`title`, `shop_domain`, `platform`, `price_total_eur`, …).
 
 ## Tests & Qualitätssicherung
 
-- **Unit-Tests**: `tests/test_normalize.py`, `tests/test_dedupe.py`,
-  `tests/test_parsers.py` – derzeit Platzhalter, sollen Mock-HTML und
-  synthetische Daten nutzen.
-- **Smoke-Test**: `scripts/smoke_test.sh` vorbereitet für künftige
-  E2E-Läufe mit Playwright.
-- **Makefile**: geplanter Einstieg für `make up`, `make test`, `make fmt`.
-
-## Design-Richtlinien (Frontend)
-
-- Dark Theme (#0b0d12) mit subtilen Gradients.
-- Neon-Akzente (Cyan/Fuchsia) für Buttons, Badges, Fokus-Stati.
-- Glassmorphism: halbtransparente Karten (`backdrop-blur`, feine
-  1px-Border), sanfte Schatten, runde Ecken (`rounded-2xl`).
-- Mikro-Interaktionen: 150–250 ms Transitions, Hover-Glows, Fokus-Ringe.
-- Responsives Layout: mobile Cards, Tablet 2-Spalten, Desktop großzügige
-  Abstände. Filters ggf. als Drawer.
-- A11y: ausreichende Kontraste, ARIA-Labels, Tastaturnavigation.
+- Unit-Tests werden künftig mit Jest/Vitest abgebildet (TODO: neue
+  Testverzeichnisse anlegen).
+- Für E2E-Smoke-Tests kann Netlify CLI Playwright-Aufrufe triggern (zeitliche
+  Limits beachten).
+- Logging erfolgt über `console.log` – Netlify stellt die Ausgaben im Dashboard
+  bereit. Strukturierte Logs (JSON) erleichtern spätere Observability.
 
 ## Nächste Schritte
 
-- FastAPI-Routen implementieren (`/search`, `/health`).
-- Adapterlogik aufbauen, YAML-Selektoren konkretisieren.
-- SQLite-Schema entwerfen, Migrationsstrategie festlegen.
-- React-Komponenten mit Tailwind umsetzen und API anbinden.
-- Tests schreiben, CI/CD-Pipeline aufsetzen.
-
-Viel Erfolg beim Ausbau von SkyKeys! 🚀
+- Node.js-Portierung der bisherigen Python-Logik (Cache, Normalize, Dedupe).
+- Playwright-Stealth-Setup als gemeinsam genutzes Modul implementieren.
+- Tailwind Theme ausarbeiten (Cyan/Fuchsia-Gradienten, Glas-Effekte,
+  Micro-Interactions).
+- Tests & Linting (ESLint, Prettier) ergänzen, sobald produktiver Code entsteht.
