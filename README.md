@@ -1,4 +1,4 @@
-# SkyKeys
+# SkyKeys Repository
 
-
-bnm kgfdsmbn,.gfdfgdgdfgdfdfgdfggd
+Siehe [`skykeys/README.md`](skykeys/README.md) für das vollständige
+Projektgerüst und weiterführende Hinweise.

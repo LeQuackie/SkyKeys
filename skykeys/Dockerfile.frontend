@@ -1,0 +1,3 @@
+# Dockerfile scaffold for the SkyKeys React frontend.
+# TODO: configure Node.js base image, install dependencies, run Vite
+# build, and serve static assets via production-ready server.

@@ -1,0 +1,3 @@
+# docker-compose scaffold for coordinating backend and frontend services.
+# TODO: define services for backend, frontend, and SQLite volume mounts.
+# Include Playwright dependencies and port mappings.

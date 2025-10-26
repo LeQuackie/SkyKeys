@@ -1,0 +1,3 @@
+# Dockerfile scaffold for the SkyKeys FastAPI backend.
+# TODO: define multi-stage build with Playwright dependencies, Poetry or
+# pip installation, and runtime user configuration.
